@@ -9,6 +9,8 @@ import com.kodezo.Dice_Roll.Helpers.RoomCodeGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class RoomService {
 
@@ -37,7 +39,7 @@ public class RoomService {
             throw new UserAlreadyExistsException("User already exists");
         }
 
-        user = new User(username, room.getUsers().size() == 0);
+        user = new User(username, room.getUsers().size() == 0, room.getUsers().size() + 1);
         room.getUsers().add(user);
         this.roomRepository.save(room);
 
@@ -80,6 +82,31 @@ public class RoomService {
     public void deleteRoom(String code) throws RoomNotFindException {
         Room room = getRoomByCode(code);
         this.roomRepository.delete(room);
+    }
+
+    public Room startGame(String code) throws RoomNotFindException, UserNotExistsException {
+        Room room = getRoomByCode(code);
+        room.setGame(true);
+        room.setMoves(0);
+        Optional<User> user = room.getUsers().stream().filter(u -> u.getMoveOrder() == 1).findFirst();
+        if(user.isEmpty()) throw new UserNotExistsException("User not exists");
+        user.get().setMoving(true);
+        this.roomRepository.save(room);
+        return room;
+    }
+
+    public Room nextMove(String code, String userId) throws RoomNotFindException, UserNotExistsException {
+        Room room = getRoomByCode(code);
+        User user = getUserById(room, userId);
+        room.setMoves(room.getMoves() + 1);
+        int actualOrder = user.getMoveOrder();
+        int nextOrder = actualOrder % room.getUsers().size() + 1;
+        Optional<User> nextUser = room.getUsers().stream().filter(u -> u.getMoveOrder() == nextOrder).findFirst();
+        if(nextUser.isEmpty()) throw new UserNotExistsException("User not exists");
+        nextUser.get().setMoving(true);
+        user.setMoving(false);
+        this.roomRepository.save(room);
+        return room;
     }
 
     public Room getRoomByCode(String code) throws RoomNotFindException {

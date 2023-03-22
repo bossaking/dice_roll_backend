@@ -1,11 +1,14 @@
 package com.kodezo.Dice_Roll.Controllers;
 
+import com.kodezo.Dice_Roll.DAL.DTO.Game.GameStatus;
+import com.kodezo.Dice_Roll.DAL.DTO.Game.GameStatusResponse;
 import com.kodezo.Dice_Roll.DAL.DTO.Game.RoomStatus;
 import com.kodezo.Dice_Roll.DAL.DTO.Game.RoomStatusResponse;
 import com.kodezo.Dice_Roll.DAL.DTO.Room.*;
 import com.kodezo.Dice_Roll.DAL.Models.Room;
 import com.kodezo.Dice_Roll.DAL.Models.User;
 import com.kodezo.Dice_Roll.DAL.Services.RoomService;
+import com.kodezo.Dice_Roll.Helpers.DiceValueGenerator;
 import com.kodezo.Dice_Roll.enums.ERoomStatus;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,11 +100,42 @@ public class RoomController {
             Room room = this.roomService.getRoomByCode(roomCode);
             User user = this.roomService.getUserById(room, roomStatus.getUserId());
 
-            if(roomStatus.getRoomStatus().equals(ERoomStatus.USER_LEAVE)){
-                room = this.roomService.leaveRoom(roomCode, user.getId());
+            switch (roomStatus.getRoomStatus()){
+                case USER_LEAVE -> {
+                    room = this.roomService.leaveRoom(roomCode, user.getId());
+                }
+                case GAME_START -> {
+                    room = this.roomService.startGame(roomCode);
+                }
             }
 
             return new RoomStatusResponse(roomStatus.getRoomStatus(), room, user.getId(), user.getUsername());
+
+        } catch (RoomService.RoomNotFindException | RoomService.UserNotExistsException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @MessageMapping("/{roomCode}/roll")
+    @SendTo("/room/{roomCode}/roll")
+    public GameStatusResponse gameRoll(@DestinationVariable String roomCode, GameStatus gameStatus) {
+        try {
+            Room room = this.roomService.getRoomByCode(roomCode);
+            switch (gameStatus.getGameStatus()){
+
+                case RESULT -> {
+                    int redValue = DiceValueGenerator.Generate(1, 6);
+                    int yellowValue = DiceValueGenerator.Generate(1, 6);
+                    int specialValue = DiceValueGenerator.Generate(1, 6);
+                    return new GameStatusResponse(gameStatus.getGameStatus(), room, redValue, yellowValue, specialValue);
+                }
+
+                case NEXT_MOVE -> {
+                    room = this.roomService.nextMove(roomCode, gameStatus.getUserId());
+                }
+            }
+
+            return new GameStatusResponse(gameStatus.getGameStatus(), room);
 
         } catch (RoomService.RoomNotFindException | RoomService.UserNotExistsException e) {
             throw new RuntimeException(e);

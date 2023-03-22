@@ -8,10 +8,15 @@ public class User {
     private String id, username;
     private boolean isOwner;
 
-    public User(String username, boolean isOwner){
+    private int moveOrder;
+    private boolean moving;
+
+    public User(String username, boolean isOwner, int moveOrder){
         this.id = UUID.randomUUID().toString();
         this.username = username;
         this.isOwner = isOwner;
+        this.moveOrder = moveOrder;
+        this.moving = false;
     }
 
     public User() {
@@ -39,5 +44,21 @@ public class User {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public int getMoveOrder() {
+        return moveOrder;
+    }
+
+    public void setMoveOrder(int moveOrder) {
+        this.moveOrder = moveOrder;
+    }
+
+    public boolean isMoving() {
+        return moving;
+    }
+
+    public void setMoving(boolean moving) {
+        this.moving = moving;
     }
 }

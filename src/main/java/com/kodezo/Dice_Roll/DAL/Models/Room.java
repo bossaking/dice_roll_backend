@@ -16,12 +16,17 @@ public class Room {
 
     private String code;
 
+    private boolean game;
+
+    private int moves = 0;
+
     private List<User> users = new ArrayList<>();
 
     public Room(String id, String code, List<User> users){
         this.id = id;
         this.code = code;
         this.users = users;
+        this.game = false;
     }
     public Room(){}
 
@@ -47,5 +52,21 @@ public class Room {
 
     public void setUsers(List<User> users) {
         this.users = users;
+    }
+
+    public boolean isGame() {
+        return game;
+    }
+
+    public void setGame(boolean game) {
+        this.game = game;
+    }
+
+    public int getMoves() {
+        return moves;
+    }
+
+    public void setMoves(int moves) {
+        this.moves = moves;
     }
 }
