@@ -2,7 +2,7 @@ package com.kodezo.Dice_Roll.DAL.DTO.Room;
 
 public class LeaveRoomDTO {
 
-    private String roomCode, username;
+    private String roomCode, userId;
 
     public LeaveRoomDTO(){
 
@@ -16,11 +16,11 @@ public class LeaveRoomDTO {
         this.roomCode = roomCode;
     }
 
-    public String getUsername() {
-        return username;
+    public String getUserId() {
+        return userId;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 }

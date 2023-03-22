@@ -10,6 +10,6 @@ import java.util.UUID;
 
 public interface RoomRepository extends MongoRepository<Room, String> {
 
-    Room findRoomByCode(String code);
+    Room findRoomByCodeIgnoreCase(String code);
 
 }

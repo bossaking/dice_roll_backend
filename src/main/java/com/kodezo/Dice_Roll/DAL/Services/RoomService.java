@@ -48,11 +48,15 @@ public class RoomService {
         return room.getUsers().stream().filter(u -> username.equals(u.getUsername())).findFirst().orElse(null);
     }
 
-    public void leaveRoom(String code, String username) throws RoomNotFindException, UserNotExistsException {
+    public User getUserById(Room room, String userId){
+        return room.getUsers().stream().filter(u -> userId.equals(u.getId())).findFirst().orElse(null);
+    }
+
+    public Room leaveRoom(String code, String userId) throws RoomNotFindException, UserNotExistsException {
 
         Room room = getRoomByCode(code);
 
-        User user = getUserByUsername(room, username);
+        User user = getUserById(room, userId);
         if(user == null){
             throw new UserNotExistsException("User not exists");
         }
@@ -61,7 +65,7 @@ public class RoomService {
 
         if(room.getUsers().size() == 0){
             deleteRoom(code);
-            return;
+            return null;
         }
 
         if(user.isOwner()){
@@ -69,6 +73,8 @@ public class RoomService {
         }
 
         this.roomRepository.save(room);
+
+        return room;
     }
 
     public void deleteRoom(String code) throws RoomNotFindException {
@@ -77,7 +83,7 @@ public class RoomService {
     }
 
     public Room getRoomByCode(String code) throws RoomNotFindException {
-        Room room = this.roomRepository.findRoomByCode(code);
+        Room room = this.roomRepository.findRoomByCodeIgnoreCase(code);
         if(room == null){
             throw new RoomNotFindException("Room not find");
         }
@@ -86,7 +92,7 @@ public class RoomService {
 
     private String generateRoomCode(){
         String code = RoomCodeGenerator.generateRandomRoomCode();
-        if(this.roomRepository.findRoomByCode(code) != null){
+        if(this.roomRepository.findRoomByCodeIgnoreCase(code) != null){
             return generateRoomCode();
         }
         return code;

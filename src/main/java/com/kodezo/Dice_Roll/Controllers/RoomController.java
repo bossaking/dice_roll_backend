@@ -1,15 +1,19 @@
 package com.kodezo.Dice_Roll.Controllers;
 
-import com.kodezo.Dice_Roll.DAL.DTO.Room.JoinRoomDTO;
-import com.kodezo.Dice_Roll.DAL.DTO.Room.LeaveRoomDTO;
-import com.kodezo.Dice_Roll.DAL.DTO.Room.NewRoomDTO;
-import com.kodezo.Dice_Roll.DAL.DTO.Room.NewRoomResponse;
+import com.kodezo.Dice_Roll.DAL.DTO.Game.RoomStatus;
+import com.kodezo.Dice_Roll.DAL.DTO.Game.RoomStatusResponse;
+import com.kodezo.Dice_Roll.DAL.DTO.Room.*;
 import com.kodezo.Dice_Roll.DAL.Models.Room;
+import com.kodezo.Dice_Roll.DAL.Models.User;
 import com.kodezo.Dice_Roll.DAL.Services.RoomService;
+import com.kodezo.Dice_Roll.enums.ERoomStatus;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,9 +44,11 @@ public class RoomController {
     @PostMapping("/room/join")
     public ResponseEntity<?> joinRoom(@RequestBody JoinRoomDTO joinRoomDTO) {
 
+        String userId;
+
         try {
 
-            this.roomService.joinRoom(joinRoomDTO.getRoomCode(), joinRoomDTO.getUsername());
+            userId = this.roomService.joinRoom(joinRoomDTO.getRoomCode(), joinRoomDTO.getUsername());
 
         } catch (RoomService.RoomNotFindException e) {
 
@@ -53,14 +59,16 @@ public class RoomController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username is taken");
         }
 
-        return ResponseEntity.ok().build();
+        JoinRoomResponse joinRoomResponse = new JoinRoomResponse(userId);
+
+        return ResponseEntity.ok().body(joinRoomResponse);
     }
 
     @PostMapping("/room/leave")
-    public ResponseEntity<?> leaveRoom(@RequestBody LeaveRoomDTO leaveRoomDTO){
+    public ResponseEntity<?> leaveRoom(@RequestBody LeaveRoomDTO leaveRoomDTO) {
 
         try {
-            this.roomService.leaveRoom(leaveRoomDTO.getRoomCode(), leaveRoomDTO.getUsername());
+            this.roomService.leaveRoom(leaveRoomDTO.getRoomCode(), leaveRoomDTO.getUserId());
         } catch (RoomService.RoomNotFindException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Incorrect room code");
         } catch (RoomService.UserNotExistsException e) {
@@ -71,7 +79,7 @@ public class RoomController {
     }
 
     @GetMapping("/room")
-    public ResponseEntity<?> getAllRooms(@RequestParam String roomCode){
+    public ResponseEntity<?> getAllRooms(@RequestParam String roomCode) {
         Room room;
         try {
             room = this.roomService.getRoomByCode(roomCode);
@@ -80,6 +88,24 @@ public class RoomController {
         }
 
         return ResponseEntity.ok(room);
+    }
+
+    @MessageMapping("/{roomCode}/status")
+    @SendTo("/room/{roomCode}/status")
+    public RoomStatusResponse roomStatusChanged(@DestinationVariable String roomCode, RoomStatus roomStatus) {
+        try {
+            Room room = this.roomService.getRoomByCode(roomCode);
+            User user = this.roomService.getUserById(room, roomStatus.getUserId());
+
+            if(roomStatus.getRoomStatus().equals(ERoomStatus.USER_LEAVE)){
+                room = this.roomService.leaveRoom(roomCode, user.getId());
+            }
+
+            return new RoomStatusResponse(roomStatus.getRoomStatus(), room, user.getId(), user.getUsername());
+
+        } catch (RoomService.RoomNotFindException | RoomService.UserNotExistsException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }
